@@ -1,0 +1,48 @@
+HOME=/home/ubuntu/MestoStatsBot
+SHELL=/bin/bash
+MAILTO=""
+PYTHONPATH=/home/ubuntu/.local/lib/python3.8/site-packages/
+
+x_openland_token=<replace>
+env_name=prod
+db_host=127.0.0.1
+db_port=5432
+db_user=mesto_user
+db_password=<replace>
+db_name=mesto_analytics
+
+# Collect info about all rooms in the community (daily)
+0 18 * * * /usr/bin/python3 rooms.py &>> rooms.log 2>&1
+# Collect info about all members in the community (daily)
+30 18 * * * /usr/bin/python3 members.py &>> members.log 2>&1
+# Analyze used hashtags (daily)
+0 19 * * * /usr/bin/python3 hashtags.py &>> hashtags.log 2>&1
+# Number of online users in each room per hour
+*/15 * * * * /usr/bin/python3 online.py &>> online.log 2>&1
+# Number of messages in each room per hour
+0 * * * * /usr/bin/python3 rooms_activity.py &>> rooms_activity.log 2>&1
+# DAU (every day at midnight)
+0 0 * * * /usr/bin/python3 active_users.py -n DAU -d 0 &>> active_users.log 2>&1
+# WAU (every Mon)
+0 0 * * 1 /usr/bin/python3 active_users.py -n WAU -d 7 &>> active_users.log 2>&1
+# MAU (every Mon)
+0 0 * * 1 /usr/bin/python3 active_users.py -n MAU -d 30 &>> active_users.log 2>&1
+# MAU_MONTHLY (every Month)
+0 0 1 * * /usr/bin/python3 active_users.py -n MAU_MONTHLY -d 30 &>> active_users.log 2>&1
+# NO_ONLINE (every Mon)
+0 0 * * 1 /usr/bin/python3 active_users.py -n NO_ONLINE -d 31 &>> active_users.log 2>&1
+# DAU_MESSAGES (every day at 0:01am)
+1 0 * * * /usr/bin/python3 active_users_messages.py -n DAU_MESSAGES -d 1 &>> active_users_messages.log 2>&1
+# WAU_MESSAGES (every Mon at 0:01am)
+1 0 * * 1 /usr/bin/python3 active_users_messages.py -n WAU_MESSAGES -d 7 &>> active_users_messages.log 2>&1
+# MAU_MESSAGES (every Mon at 0:30am)
+30 0 * * 1 /usr/bin/python3 active_users_messages.py -n MAU_MESSAGES -d 30 &>> active_users_messages.log 2>&1
+# Record profile stats (every Mon)
+0 0 * * 1 /usr/bin/python3 record_profile_stats.py &>> record_profile_stats.log 2>&1
+# Send msg: welcome bar 2020-10-28
+#30 09 26,27,28 10 * /usr/bin/python3 members.py &>> members.log 2>&1
+#0 10 26,27,28 10 * /usr/bin/python3 send_msg_welcome_bar.py &>> send_msg.log 2>&1
+# Send msg (every Tue at 13:00 MSK): update profile request
+0 10 * * 2 /usr/bin/python3 send_msg_update_profile_request.py &>> send_msg.log 2>&1
+# REBOOT instance if db container is not alive
+0 * * * * if ! sudo docker ps | grep postgres-db > /dev/null; then sudo reboot; fi
